@@ -95,6 +95,9 @@ export default function Home() {
           <p>
             Based on IEC 62305-1 standards | Mathematical models from my dissertation research
           </p>
+          <p className="mt-2">
+            ver.1b | by TheProject
+          </p>
         </footer>
       </div>
     </main>

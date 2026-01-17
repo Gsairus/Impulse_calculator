@@ -1,5 +1,7 @@
 # Universal Impulse Current Calculator
 
+**ver.1b** | by TheProject
+
 A comprehensive web application and Python toolkit for calculating lightning impulse current parameters according to IEC 62305-1 standards.
 
 ## 🌐 Web Application
