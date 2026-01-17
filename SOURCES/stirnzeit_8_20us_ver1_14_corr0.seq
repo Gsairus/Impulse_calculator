@@ -1,0 +1,138 @@
+;     © Copyright: esh, 1997-2014=); 
+;    Program_Name: stirnzeit_8_20us_ver1_14_corr0.seq;
+;      Components: keine;
+;            Ver.: 1.14.corr0;
+;            Code: ;
+;         Warning: for single impulse only! For 8/20µs-type of impulses
+;     FORMAT used: seq;
+;     Description: Algorithm for Impulse-current-parameters calculation ();
+;    EN 61000-4-5: "Rise time/Stirnzeit" is time from 10% to 90% of Imax. 
+;                  "Front time measured" is time from virtual impulse beginning to Imax.
+;                  "Front time calculated:"=1.25*rise time
+;                  Rückenhalbwertszeit / time to half-value
+;     Highlights.: 
+;    Universality: Ja;
+;    Examples use: ;
+;   	 	   Signs: Var-Varible; Arr-Array;
+;Output Variables: maxVar; riseTimeVar; frontTimeMeasuredVar;
+
+
+stromCH820=c1rc20m_30_01_14_00006
+SetEinheit(stromCH820,"A",1)
+
+
+
+DeltaCH1Var=xDel?(stromCH820)
+nVar=Lang?(stromCH820)
+maxVar=max(stromCH820)
+offsetVar=xOff?(stromCH820)
+
+;erg= SuchePegel(stromCH820, 3, 0.1*maxVar, 0.9*maxVar, 2, 0, 0, 0) geht nicht?
+;Window showing
+CwNewWindow(stromCH820, "show")
+CwNewChannel("append new axis",stromCH820)
+;errMsg=KvMarkerAnhängen(stromCH820, 1e-6, 300,0,1,1, "0.9",0,0)
+;Looking for 0.1 and 0.9 points, showing them
+XYDatenCH1_Arr=XYvon(Rampe(offsetVar,DeltaCH1Var,nVar), stromCH820)
+		i=1
+		j=1
+		SOLANGE WertIndex(XYDatenCH1_Arr.Y, i)<=0.9*maxVar
+					WENN j=1 AND WertIndex(XYDatenCH1_Arr.Y, i)>=0.1*maxVar
+						Point1XVar=WertIndex(XYDatenCH1_Arr.X, i)
+						Point1YVar=WertIndex(XYDatenCH1_Arr.Y, i)
+						
+						Zeigen stromCH820
+						tmpVar=TForm(WertIndex(XYDatenCH1_Arr.Y, i),"")
+						errMsg=KvMarkerAnhängen(stromCH820, Point1XVar, Point1YVar,0,1,1, TAdd("0.1 by ",tmpVar),0,0)
+						j=j+1
+					;Sonst
+					ENDE ; wenn.
+			i=i+2
+		
+		ENDE
+
+Point2XVar=WertIndex(XYDatenCH1_Arr.X, i)
+Point2YVar=WertIndex(XYDatenCH1_Arr.Y, i)
+riseTimeVar=Point2XVar-Point1XVar
+frontTimeCalculatedVar=1.25*riseTimeVar
+
+Zeigen stromCH820
+tmpVar=TForm(WertIndex(XYDatenCH1_Arr.Y, i),"")
+errMsg=KvMarkerAnhängen(stromCH820, WertIndex(XYDatenCH1_Arr.X, i), WertIndex(XYDatenCH1_Arr.Y, i),0,1,1, TAdd("0.9 by ",tmpVar),0,0)
+
+;Looking for point 2 (where front-line crosses the max value of current)
+kVar=(Point2YVar-Point1YVar)/(Point2XVar-Point1XVar)
+i=Point2XVar
+
+;SOLANGE (((Point2YVar-Point1YVar)*(i-Point1XVar))/(Point2XVar-Point1XVar))<maxVar
+SOLANGE (kVar*(i-Point1XVar)+Point1YVar)<maxVar
+	i=i+DeltaCH1Var
+ENDE
+targetPoint2X=i
+
+	Zeigen stromCH820
+	tmpVar=TForm(maxVar,"")
+	
+	errMsg=KvMarkerAnhängen(stromCH820, targetPoint2X, maxVar, 0, 1, 1, TAdd("2 by ",tmpVar), 0, 0)
+	
+;Looking for point 1 (where front-line crosses null)
+i=Point1XVar
+;SOLANGE (((Point2YVar-Point1YVar)*(i-Point1XVar))/(Point2XVar-Point1XVar))>0
+SOLANGE (kVar*(i-Point1XVar)+Point1YVar)>0
+	i=i-DeltaCH1Var
+ENDE
+targetPoint1X=i
+
+	Zeigen stromCH820
+	errMsg=KvMarkerAnhängen(stromCH820, targetPoint1X, 0, 0, 1, 1, "1, virtual impulse beginning", 0, 0)
+
+frontTimeMeasuredVar=targetPoint2X-targetPoint1X
+;build a line kx+b (nicht moeglich momentan!)
+tmpVar=(frontTimeMeasuredVar)/DeltaCH1Var
+
+linieX_Arr=Lang(0,tmpVar)
+linieY_Arr=Lang(0,tmpVar)
+i=1
+SOLANG i<=tmpVar+1
+	linieX_Arr[i]=targetPoint1X+i*DeltaCH1Var
+	linieY_Arr[i]=(kVar*(linieX_Arr[i]-Point1XVar)+Point1YVar)
+	i=i+1	
+ENDE
+
+XYLinieArr=XYvon(linieX_Arr, linieY_Arr)
+CwNewChannel("append last axis",XYLinieArr)
+Zeigen stromCH820
+
+; Looking for time to half-value
+tailCurrentArr = SuchePegel(stromCH820, 3, 0.1*maxVar, 0.9*maxVar, 1, 0, 0, 0)
+;halfTimeVar=PosiEx2(stromCH820,0.5*maxVar,1,0) is not working =(
+halfTimeVar=max(PosiEx(tailCurrentArr,0.5*maxVar))
+
+	tmpVar=TForm(halfTimeVar*1e6,"")
+	Zeigen stromCH820
+	errMsg=KvMarkerAnhängen(stromCH820, halfTimeVar, 0.5*maxVar, 0, 1, 1, TAdd("half-value by (µs) ",tmpVar), 0, 0)
+
+;Entfernen stromCH820
+Entfernen i
+Entfernen j
+Entfernen DeltaCH1Var
+
+Entfernen tmpVar
+Entfernen nVar
+Entfernen XYDatenCH1_Arr
+Entfernen Point1XVar
+Entfernen Point1YVar
+Entfernen Point2XVar
+Entfernen Point2YVar
+Entfernen errMsg
+Entfernen targetPoint1X
+Entfernen targetPoint2X
+Entfernen linieX_Arr
+Entfernen linieY_Arr
+Entfernen offsetVar
+;Entfernen XYLinieArr
+Entfernen tailCurrentArr
+Entfernen kVar
+
+
+
