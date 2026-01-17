@@ -4,7 +4,7 @@ A comprehensive web application and Python toolkit for calculating lightning imp
 
 ## 🌐 Web Application
 
-**Live App**: [Deploy to get URL - see DEPLOYMENT.md](DEPLOYMENT.md)
+**Live App**: https://impulse-calculator.vercel.app
 
 ### Features
 - **Responsive Design**: Works on iPhone, Android, iPad, and desktop
