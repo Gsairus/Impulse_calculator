@@ -1,0 +1,32 @@
+<svg width="1200" height="300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="300" fill="#0f172a"/>
+  
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="300" fill="url(#grid)" opacity="0.3"/>
+  
+  <!-- Waveform path (10/350 µs impulse curve) -->
+  <path d="M 100 150 Q 200 80, 250 85 T 400 120 T 550 135 T 700 142 T 850 146 T 1000 148 L 1100 150" 
+        fill="none" stroke="#3b82f6" stroke-width="3" opacity="0.6"/>
+  
+  <!-- Lightning bolt -->
+  <path d="M 550 50 L 520 120 L 560 120 L 530 180 L 580 110 L 550 110 Z" 
+        fill="#3b82f6" stroke="#60a5fa" stroke-width="2"/>
+  
+  <!-- Accent lines -->
+  <line x1="250" y1="85" x2="250" y2="150" stroke="#60a5fa" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  <line x1="700" y1="142" x2="700" y2="150" stroke="#60a5fa" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  
+  <!-- Title text -->
+  <text x="600" y="240" font-family="Arial, sans-serif" font-size="36" font-weight="bold" 
+        fill="#f1f5f9" text-anchor="middle">IMPULSE CURRENT CALCULATOR</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="270" font-family="Arial, sans-serif" font-size="16" 
+        fill="#94a3b8" text-anchor="middle">Lightning Protection Analysis Tool</text>
+</svg>

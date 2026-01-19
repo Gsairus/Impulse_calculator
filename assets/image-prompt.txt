@@ -1,0 +1,89 @@
+Create a professional scientific banner for a Lightning Impulse Current Calculator web application.
+
+━━━ TECHNICAL CONTEXT ━━━
+This app calculates lightning and surge current waveforms according to IEC 62305-1 standards.
+Target users: Electrical engineers, lightning protection specialists, researchers.
+
+━━━ PRIMARY VISUAL ELEMENTS ━━━
+
+1. WAVEFORM DISPLAY (Most Important):
+   - Show an accurate 10/350 µs lightning impulse waveform curve
+   - Sharp exponential rise to peak at ~10 µs
+   - Long exponential decay tail to ~350 µs
+   - Clean line graph style (like oscilloscope trace)
+   - Graph should be prominent and scientifically accurate
+
+2. LIGHTNING SYMBOL:
+   - Stylized lightning bolt, not cartoonish
+   - Integrated subtly with the waveform (behind or beside it)
+   - Electric blue color (#3B82F6)
+   - Sharp, angular, technical design
+
+3. GRID BACKGROUND:
+   - Subtle measurement grid (like graph paper or oscilloscope)
+   - Semi-transparent, not distracting
+   - Gives scientific/technical feel
+   - Dark background with light grid lines
+
+━━━ COLOR PALETTE ━━━
+- Background: Deep navy (#0f172a) or dark charcoal (#1a1a1a)
+- Primary waveform line: Electric blue (#3B82F6) - bright, glowing effect
+- Secondary accents: Light blue (#60a5fa) for highlights
+- Grid lines: Dark gray (#1e293b) - very subtle
+- Text-ready areas: Leave space with good contrast
+
+━━━ COMPOSITION & LAYOUT ━━━
+
+FOR BANNER (1200x300px):
+- Waveform spans horizontally across center
+- Lightning bolt on left or right side
+- Grid background throughout
+- Clean, wide format for web header
+- Professional and uncluttered
+
+FOR ICON (512x512px):
+- Centered lightning bolt
+- Waveform arc wrapping around or behind it
+- Grid in background
+- High contrast for small display sizes
+- Recognizable at 32x32px
+
+━━━ STYLE REQUIREMENTS ━━━
+- Modern technical illustration style
+- NOT photorealistic, NOT 3D rendered
+- Flat/semi-flat design with subtle glow effects
+- Clean vector-style graphics
+- Scientific precision, not decorative
+- No text or typography (leave space for app name)
+- High contrast for readability
+- Professional engineering aesthetic
+
+━━━ TECHNICAL SPECIFICATIONS ━━━
+- High resolution (300 DPI minimum)
+- Clean edges and sharp lines
+- Suitable for both light and dark mode websites
+- Works at multiple scales (icon to banner)
+- No complex gradients that don't scale well
+
+━━━ MOOD & TONE ━━━
+Professional | Precise | Scientific | Modern | Trustworthy | Technical Excellence
+
+━━━ AVOID ━━━
+❌ Cartoon style or clip art look
+❌ Stock photo lightning bolts
+❌ Overly decorative or artistic interpretations
+❌ Busy compositions with too many elements
+❌ Low contrast or muddy colors
+❌ Generic electrical symbols
+❌ 3D rendered or photorealistic styles
+
+━━━ REFERENCE CONCEPT ━━━
+Think: High-end oscilloscope display + technical engineering software + modern web design
+Similar to: MATLAB interface aesthetics, electrical engineering textbook diagrams, precision measurement instruments
+
+━━━ OUTPUT REQUIREMENTS ━━━
+Two versions needed:
+1. Wide banner (1200x300px) for web header
+2. Square icon (512x512px) for app icon/favicon
+
+Both should share same color palette and visual language but adapted for their specific format.
