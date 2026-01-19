@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import CalculatorForm from '@/components/CalculatorForm';
 import ResultsDisplay from '@/components/ResultsDisplay';
 import { runImpulseCalculation, type CalculationOptions } from '@/lib/impulseCalculator';
@@ -36,10 +37,13 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         {/* App Logo - Top Left */}
         <div className="mb-6">
-          <img 
+          <Image 
             src="/icon.png" 
             alt="Impulse Calculator" 
+            width={64}
+            height={64}
             className="w-12 h-12 md:w-16 md:h-16"
+            priority
           />
         </div>
         
