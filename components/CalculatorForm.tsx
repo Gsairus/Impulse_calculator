@@ -41,12 +41,18 @@ export default function CalculatorForm({ onCalculate, isCalculating }: Calculato
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Helper to parse scientific notation properly
+    const parseScientific = (value: string): number => {
+      const parsed = Number(value);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    
     const options: CalculationOptions = {
       impulseType,
       functionType,
       I_peak: parseFloat(peakCurrent) * 1e3, // Convert kA to A
-      duration: duration === 'infinity' ? 'infinity' : parseFloat(duration),
-      dt: timeStep === 'auto' ? 'auto' : parseFloat(timeStep),  // Handle 'auto'
+      duration: duration === 'infinity' ? 'infinity' : parseScientific(duration),
+      dt: timeStep === 'auto' ? 'auto' : parseScientific(timeStep),
       calculateDerivative: showDerivative,
     };
 
@@ -146,17 +152,17 @@ export default function CalculatorForm({ onCalculate, isCalculating }: Calculato
             <div className="mt-3 space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Duration
+                  Duration (s)
                 </label>
                 <input
                   type="text"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                   className="input-field"
-                  placeholder="infinity or value in seconds"
+                  placeholder="infinity, 1e-3, or 0.001"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Use &quot;infinity&quot; for auto-calculation
+                  Use &quot;infinity&quot; for auto-calculation or scientific notation (e.g., 1e-6 for 1 µs)
                 </p>
               </div>
               
