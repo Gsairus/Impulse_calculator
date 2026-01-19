@@ -78,6 +78,15 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
         
         const sampledTime = sampledIndices.map((i: number) => waveform.time[i] * 1e6); // Convert to µs
         const sampledCurrent = sampledIndices.map((i: number) => waveform.current[i] / 1e3); // Convert to kA
+        
+        // Debug: check time array values
+        console.log('=== CHART TIME DEBUG ===');
+        console.log('Total waveform points:', waveform.time.length);
+        console.log('First time value:', waveform.time[0], 's');
+        console.log('Last time value:', waveform.time[waveform.time.length - 1], 's =', (waveform.time[waveform.time.length - 1] * 1e6), 'µs');
+        console.log('Sampled points:', sampledTime.length);
+        console.log('First sampled time:', sampledTime[0], 'µs');
+        console.log('Last sampled time:', sampledTime[sampledTime.length - 1], 'µs');
 
         const chartData = {
           labels: sampledTime,

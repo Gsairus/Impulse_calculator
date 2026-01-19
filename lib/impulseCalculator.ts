@@ -286,6 +286,8 @@ function getOptimalTimeStep(impulseType: ImpulseType, userDt?: number | 'auto'):
 export function runImpulseCalculation(options: CalculationOptions): {
   results: Record<string, CalculationResults>;
   impulseInfo: ImpulseParams;
+  userDuration: number | 'infinity';
+  infinityDuration: number;
 } {
   let {
     impulseType,
@@ -312,18 +314,32 @@ export function runImpulseCalculation(options: CalculationOptions): {
   const impulseInfo = IMPULSE_PARAMS[impulseType];
   const isSurge = impulseType === 'SEB';
   
-  // Calculate duration if set to 'infinity'
-  if (duration === 'infinity') {
-    const multiplier = isSurge ? 5 : 7;
-    const tauKey = isSurge ? 'tau' : 'tau2';
-    const paramsKey = isSurge ? 'damped_sine' : 'heidler';
-    const params = impulseInfo[paramsKey];
-    if (params && tauKey in params) {
-      duration = multiplier * (params as any)[tauKey];
-    } else {
-      duration = 1e-3; // Default 1ms
-    }
+  // Store user's original duration choice
+  const userDuration = duration;
+  
+  // Calculate infinity duration
+  const multiplier = isSurge ? 5 : 7;
+  const tauKey = isSurge ? 'tau' : 'tau2';
+  const paramsKey = isSurge ? 'damped_sine' : 'heidler';
+  const params = impulseInfo[paramsKey];
+  let infinityDuration: number;
+  if (params && tauKey in params) {
+    infinityDuration = multiplier * (params as any)[tauKey];
+  } else {
+    infinityDuration = 1e-3; // Default 1ms
   }
+  
+  // Use user duration if specified, otherwise use infinity duration
+  if (duration === 'infinity') {
+    duration = infinityDuration;
+  }
+  
+  console.log('=== DURATION DEBUG ===');
+  console.log('User input:', userDuration);
+  console.log('Infinity duration:', infinityDuration, 's =', (infinityDuration * 1e6), 'µs');
+  console.log('Actual used:', duration, 's =', (duration * 1e6), 'µs');
+  console.log('Time step:', actualDt, 's');
+  console.log('Estimated points:', estimatedPoints);
   
   // SMART PROTECTION: Auto-adjust time step if it would create too many points
   const MAX_POINTS = 1000000;  // 1 million points max
@@ -400,5 +416,5 @@ export function runImpulseCalculation(options: CalculationOptions): {
     }
   }
   
-  return { results, impulseInfo };
+  return { results, impulseInfo, userDuration, infinityDuration, actualDuration: duration };
 }
