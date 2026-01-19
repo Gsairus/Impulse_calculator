@@ -334,16 +334,16 @@ export function runImpulseCalculation(options: CalculationOptions): {
     duration = infinityDuration;
   }
   
+  // SMART PROTECTION: Auto-adjust time step if it would create too many points
+  const MAX_POINTS = 1000000;  // 1 million points max
+  let estimatedPoints = Math.floor(duration / actualDt);
+  
   console.log('=== DURATION DEBUG ===');
   console.log('User input:', userDuration);
   console.log('Infinity duration:', infinityDuration, 's =', (infinityDuration * 1e6), 'µs');
   console.log('Actual used:', duration, 's =', (duration * 1e6), 'µs');
   console.log('Time step:', actualDt, 's');
   console.log('Estimated points:', estimatedPoints);
-  
-  // SMART PROTECTION: Auto-adjust time step if it would create too many points
-  const MAX_POINTS = 1000000;  // 1 million points max
-  let estimatedPoints = Math.floor(duration / actualDt);
   
   if (estimatedPoints > MAX_POINTS) {
     // Instead of throwing error, intelligently adjust time step
