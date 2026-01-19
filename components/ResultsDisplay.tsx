@@ -138,8 +138,11 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
                   weight: 'bold' as const,
                 },
               },
+              min: 0,
+              max: sampledTime[sampledTime.length - 1], // Ensure last time value is max
               ticks: {
                 maxTicksLimit: 10,
+                includeBounds: true, // Always show first and last tick
                 callback: function(value: any) {
                   // Format numbers to avoid scientific notation and excessive decimals
                   const numValue = typeof value === 'number' ? value : parseFloat(value);

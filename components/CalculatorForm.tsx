@@ -47,11 +47,24 @@ export default function CalculatorForm({ onCalculate, isCalculating }: Calculato
       return isNaN(parsed) ? 0 : parsed;
     };
     
+    // Parse duration - check if it's the string "infinity" or a number
+    let parsedDuration: number | 'infinity';
+    if (duration.trim().toLowerCase() === 'infinity') {
+      parsedDuration = 'infinity';
+    } else {
+      parsedDuration = parseScientific(duration);
+    }
+    
+    console.log('=== FORM SUBMIT DEBUG ===');
+    console.log('Raw duration input:', duration);
+    console.log('Parsed duration:', parsedDuration);
+    console.log('Type:', typeof parsedDuration);
+    
     const options: CalculationOptions = {
       impulseType,
       functionType,
       I_peak: parseFloat(peakCurrent) * 1e3, // Convert kA to A
-      duration: duration === 'infinity' ? 'infinity' : parseScientific(duration),
+      duration: parsedDuration,
       dt: timeStep === 'auto' ? 'auto' : parseScientific(timeStep),
       calculateDerivative: showDerivative,
     };
