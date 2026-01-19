@@ -288,6 +288,8 @@ export function runImpulseCalculation(options: CalculationOptions): {
   impulseInfo: ImpulseParams;
   userDuration: number | 'infinity';
   infinityDuration: number;
+  infinityParameters?: CalculationResult; // Parameters calculated for infinity duration (for single function)
+  infinityParametersBoth?: Record<string, CalculationResult>; // Parameters for both functions when 'both' is selected
 } {
   let {
     impulseType,
@@ -357,7 +359,75 @@ export function runImpulseCalculation(options: CalculationOptions): {
     );
   }
   
-  // Generate time array
+  // If user specified a custom duration, generate full waveform first, then truncate
+  // Why: Normalization should happen on full waveform, not truncated window
+  // Otherwise short durations will incorrectly show peak values they shouldn't reach
+  const needsInfinityParams = typeof userDuration === 'number' && userDuration !== Infinity;
+  let infinityParameters: CalculationResult | undefined;
+  let fullWaveformHeidler: { time: number[], current: number[] } | undefined;
+  let fullWaveformDoubleExp: { time: number[], current: number[] } | undefined;
+  
+  if (needsInfinityParams) {
+    // Generate full infinity waveform for proper normalization
+    const infinityDt = getOptimalTimeStep(impulseType, dt);
+    let infinityPoints = Math.floor(infinityDuration / infinityDt);
+    let infinityDtActual = infinityDt;
+    
+    // Safety check: ensure infinity calculation doesn't exceed MAX_POINTS
+    if (infinityPoints > MAX_POINTS) {
+      const minDt = infinityDuration / MAX_POINTS;
+      infinityDtActual = Math.max(infinityDt, minDt);
+      infinityPoints = Math.floor(infinityDuration / infinityDtActual);
+    }
+    
+    const t_infinity = Array.from({ length: infinityPoints }, (_, i) => i * infinityDtActual);
+    
+    if (isSurge) {
+      const p = impulseInfo.damped_sine!;
+      const i_infinity = dampedSineFunction(t_infinity, I_peak, p.tau, p.omega, p.eta);
+      infinityParameters = calculateParameters(t_infinity, i_infinity, impulseType);
+      fullWaveformHeidler = { time: t_infinity, current: i_infinity }; // Reuse for surge
+    } else {
+      // Generate full waveforms for both function types if needed
+      if (functionType === 'heidler' || functionType === 'both') {
+        const p = impulseInfo.heidler!;
+        const i_infinity = heidlerFunction(t_infinity, I_peak, p.tau1, p.tau2, p.eta, p.n);
+        if (functionType === 'heidler') {
+          infinityParameters = calculateParameters(t_infinity, i_infinity, impulseType);
+        }
+        fullWaveformHeidler = { time: t_infinity, current: i_infinity };
+      }
+      
+      if (functionType === 'double_exp' || functionType === 'both') {
+        const p = impulseInfo.double_exp!;
+        const i_infinity = doubleExpFunction(t_infinity, I_peak, p.tau1, p.tau2, p.eta);
+        if (functionType === 'double_exp') {
+          infinityParameters = calculateParameters(t_infinity, i_infinity, impulseType);
+        }
+        fullWaveformDoubleExp = { time: t_infinity, current: i_infinity };
+      }
+      
+      // For 'both', calculate infinity parameters for both functions
+      if (functionType === 'both') {
+        if (fullWaveformHeidler && fullWaveformDoubleExp) {
+          infinityParameters = calculateParameters(t_infinity, fullWaveformHeidler.current, impulseType);
+        }
+      } else if (infinityParameters === undefined) {
+        // For single function, use the one that was calculated
+        if (fullWaveformHeidler) {
+          infinityParameters = calculateParameters(t_infinity, fullWaveformHeidler.current, impulseType);
+        } else if (fullWaveformDoubleExp) {
+          infinityParameters = calculateParameters(t_infinity, fullWaveformDoubleExp.current, impulseType);
+        }
+      }
+    }
+  }
+  
+  // Calculate infinity parameters for both functions when 'both' is selected
+  // This will be populated after results are calculated
+  let infinityParametersBoth: Record<string, CalculationResult> | undefined;
+  
+  // Generate time array for the specified duration (or infinity)
   const numPoints = estimatedPoints;
   const t = Array.from({ length: numPoints }, (_, i) => i * actualDt);
   
@@ -366,16 +436,31 @@ export function runImpulseCalculation(options: CalculationOptions): {
   if (isSurge) {
     // Damped sine for SEB/SC
     const p = impulseInfo.damped_sine!;
-    const i = dampedSineFunction(t, I_peak, p.tau, p.omega, p.eta);
-    const parameters = calculateParameters(t, i, impulseType);
+    let i: number[];
+    let t_used: number[];
+    
+    if (needsInfinityParams && fullWaveformHeidler) {
+      // Use full waveform and truncate to user duration (reusing heidler var for surge)
+      const endIndex = fullWaveformHeidler.time.findIndex((time) => time >= duration);
+      const validEndIndex = endIndex > 0 ? endIndex : fullWaveformHeidler.time.length;
+      t_used = fullWaveformHeidler.time.slice(0, validEndIndex);
+      i = fullWaveformHeidler.current.slice(0, validEndIndex);
+    } else {
+      // Generate for specified duration
+      i = dampedSineFunction(t, I_peak, p.tau, p.omega, p.eta);
+      t_used = t;
+    }
+    
+    const parameters = calculateParameters(t_used, i, impulseType);
     
     let derivative: number[] | undefined;
     if (calculateDerivative) {
-      derivative = gradient(i, actualDt);
+      const dt_used = t_used.length > 1 ? t_used[1] - t_used[0] : actualDt;
+      derivative = gradient(i, dt_used);
     }
     
     results.damped_sine = {
-      waveform: { time: t, current: i, derivative },
+      waveform: { time: t_used, current: i, derivative },
       parameters,
       functionType: 'Damped Sine',
     };
@@ -383,16 +468,31 @@ export function runImpulseCalculation(options: CalculationOptions): {
     // Heidler and/or Double-Exp for lightning impulses
     if (functionType === 'heidler' || functionType === 'both') {
       const p = impulseInfo.heidler!;
-      const i = heidlerFunction(t, I_peak, p.tau1, p.tau2, p.eta, p.n);
-      const parameters = calculateParameters(t, i, impulseType);
+      let i: number[];
+      let t_used: number[];
+      
+      if (needsInfinityParams && fullWaveformHeidler) {
+        // Use full waveform and truncate to user duration
+        const endIndex = fullWaveformHeidler.time.findIndex((time) => time >= duration);
+        const validEndIndex = endIndex > 0 ? endIndex : fullWaveformHeidler.time.length;
+        t_used = fullWaveformHeidler.time.slice(0, validEndIndex);
+        i = fullWaveformHeidler.current.slice(0, validEndIndex);
+      } else {
+        // Generate for specified duration
+        i = heidlerFunction(t, I_peak, p.tau1, p.tau2, p.eta, p.n);
+        t_used = t;
+      }
+      
+      const parameters = calculateParameters(t_used, i, impulseType);
       
       let derivative: number[] | undefined;
       if (calculateDerivative) {
-        derivative = gradient(i, actualDt);
+        const dt_used = t_used.length > 1 ? t_used[1] - t_used[0] : actualDt;
+        derivative = gradient(i, dt_used);
       }
       
       results.heidler = {
-        waveform: { time: t, current: i, derivative },
+        waveform: { time: t_used, current: i, derivative },
         parameters,
         functionType: 'Heidler',
       };
@@ -400,21 +500,53 @@ export function runImpulseCalculation(options: CalculationOptions): {
     
     if (functionType === 'double_exp' || functionType === 'both') {
       const p = impulseInfo.double_exp!;
-      const i = doubleExpFunction(t, I_peak, p.tau1, p.tau2, p.eta);
-      const parameters = calculateParameters(t, i, impulseType);
+      let i: number[];
+      let t_used: number[];
+      
+      if (needsInfinityParams && fullWaveformDoubleExp) {
+        // Use full waveform and truncate to user duration
+        const endIndex = fullWaveformDoubleExp.time.findIndex((time) => time >= duration);
+        const validEndIndex = endIndex > 0 ? endIndex : fullWaveformDoubleExp.time.length;
+        t_used = fullWaveformDoubleExp.time.slice(0, validEndIndex);
+        i = fullWaveformDoubleExp.current.slice(0, validEndIndex);
+      } else {
+        // Generate for specified duration
+        i = doubleExpFunction(t, I_peak, p.tau1, p.tau2, p.eta);
+        t_used = t;
+      }
+      
+      const parameters = calculateParameters(t_used, i, impulseType);
       
       let derivative: number[] | undefined;
       if (calculateDerivative) {
-        derivative = gradient(i, actualDt);
+        const dt_used = t_used.length > 1 ? t_used[1] - t_used[0] : actualDt;
+        derivative = gradient(i, dt_used);
       }
       
       results.double_exp = {
-        waveform: { time: t, current: i, derivative },
+        waveform: { time: t_used, current: i, derivative },
         parameters,
         functionType: 'Double-Exponential',
       };
     }
   }
   
-  return { results, impulseInfo, userDuration, infinityDuration, actualDuration: duration };
+  // Calculate infinity parameters for both functions when 'both' is selected
+  if (functionType === 'both' && !isSurge) {
+    if (needsInfinityParams && fullWaveformHeidler && fullWaveformDoubleExp) {
+      // Custom duration: use pre-calculated full waveforms
+      infinityParametersBoth = {
+        heidler: calculateParameters(fullWaveformHeidler.time, fullWaveformHeidler.current, impulseType),
+        double_exp: calculateParameters(fullWaveformDoubleExp.time, fullWaveformDoubleExp.current, impulseType),
+      };
+    } else if (!needsInfinityParams) {
+      // Duration is 'infinity': use result parameters directly (they're already for infinity)
+      infinityParametersBoth = {
+        heidler: results.heidler?.parameters,
+        double_exp: results.double_exp?.parameters,
+      };
+    }
+  }
+  
+  return { results, impulseInfo, userDuration, infinityDuration, infinityParameters, infinityParametersBoth };
 }

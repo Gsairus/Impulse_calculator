@@ -66,7 +66,7 @@ export default function Home() {
           {/* Results Display - Right Side */}
           <div className="lg:col-span-2">
             {results ? (
-              <ResultsDisplay results={results} />
+              <ResultsDisplay results={{ ...results, userDuration: results.userDuration }} />
             ) : (
               <div className="card h-full flex items-center justify-center">
                 <div className="text-center text-gray-500">
