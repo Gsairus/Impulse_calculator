@@ -32,6 +32,10 @@ export default function CalculatorForm({ onCalculate, isCalculating }: Calculato
     } else if (functionType === 'damped_sine') {
       setFunctionType('heidler');
     }
+    
+    // Reset time step to "auto" when switching impulse types
+    // Why: each impulse type needs different resolution, auto handles this
+    setTimeStep('auto');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -168,14 +172,14 @@ export default function CalculatorForm({ onCalculate, isCalculating }: Calculato
                   placeholder="auto or 1e-9"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  &quot;auto&quot; = optimal for impulse type (recommended)
+                  &quot;auto&quot; = optimal for each impulse type (recommended)
                   <br />
-                  NFB: 1 ns, NEB: 2 ns, PEB: 20 ns, SC: 15 ns
+                  Auto values: NFB: 1.5 ns | NEB: 2.5 ns | PEB: 20 ns | SC: 15 ns
                   <br />
-                  Or use scientific notation: 1e-9 (1 ns), 1e-8 (10 ns)
+                  Manual entry: use scientific notation (e.g., 1e-9 for 1 ns)
                   <br />
-                  <span className="text-amber-600 dark:text-amber-400">
-                    ⚠️ Very small values (&lt; 1e-10) may slow down calculation
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    💡 Time step auto-resets to &quot;auto&quot; when you switch impulse types
                   </span>
                 </p>
               </div>

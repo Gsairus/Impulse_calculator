@@ -241,28 +241,42 @@ export interface CalculationOptions {
 
 /**
  * Get optimal time step for impulse type
- * Why: Faster impulses need smaller dt for accurate di/dt calculation
+ * Why: Balance between accurate di/dt calculation and staying under 1M points
+ * 
+ * Calculation: for duration = 7*tau2 (or 5*tau for surge), ensure dt gives <1M points
+ * while maintaining ~200-500 samples in the rise time for accurate derivative
  */
 function getOptimalTimeStep(impulseType: ImpulseType, userDt?: number | 'auto'): number {
-  // If user explicitly set a numeric value, use it
+  // If user explicitly set a numeric value, use it (will be validated later)
   if (typeof userDt === 'number') {
     return userDt;
   }
   
   // Auto-select based on impulse type characteristics
-  // Rule: dt should be ~1/200 to 1/500 of the front time for accurate derivative
-  // NOTE: also need to keep total points under 1M to avoid browser overload
+  // Rule: dt chosen to give ~200-400 rise time samples AND total points < 1M
   switch (impulseType) {
-    case 'NFB':  // 0.25 µs front time - needs fine resolution but not too many points
-      return 1e-9;   // 1 ns (250 points in 0.25 µs rise, ~1M total points)
-    case 'NEB':  // 1 µs front time - needs very fine resolution
-      return 2e-9;   // 2 ns (500 points in 1 µs rise)
-    case 'PEB':  // 10 µs front time - standard resolution ok
-      return 2e-8;   // 20 ns (500 points in 10 µs rise)
-    case 'SEB':  // 8 µs front time - standard resolution ok
-      return 1.5e-8; // 15 ns (533 points in 8 µs rise)
+    case 'NFB':  // 0.25 µs front, 100 µs tail → duration ~1 ms
+      // tau2=143.4µs, duration=7*143.4µs=1.004ms → need dt>1ns for <1M points
+      // Using 1.5ns gives 669k points, 167 samples in 0.25µs rise (good accuracy)
+      return 1.5e-9;  // 1.5 ns
+      
+    case 'NEB':  // 1 µs front, 200 µs tail → duration ~2 ms
+      // tau2=285µs, duration=7*285µs=1.995ms → need dt>2ns for <1M points
+      // Using 2.5ns gives 798k points, 400 samples in 1µs rise (excellent)
+      return 2.5e-9;  // 2.5 ns
+      
+    case 'PEB':  // 10 µs front, 350 µs tail → duration ~3.4 ms
+      // tau2=485µs, duration=7*485µs=3.395ms → can use larger dt
+      // Using 20ns gives 170k points, 500 samples in 10µs rise (excellent)
+      return 2e-8;    // 20 ns
+      
+    case 'SEB':  // 8 µs front, ~150 µs tail → duration ~120 µs
+      // tau=24µs, duration=5*24µs=120µs → can use larger dt
+      // Using 15ns gives 8k points, 533 samples in 8µs rise (excellent)
+      return 1.5e-8;  // 15 ns
+      
     default:
-      return 1e-8;   // 10 ns default
+      return 1e-8;    // 10 ns fallback
   }
 }
 
@@ -288,7 +302,7 @@ export function runImpulseCalculation(options: CalculationOptions): {
   }
   
   // Get optimal time step
-  const actualDt = getOptimalTimeStep(impulseType, dt);
+  let actualDt = getOptimalTimeStep(impulseType, dt);
   
   // Set default peak current if not provided
   if (!I_peak) {
@@ -311,15 +325,19 @@ export function runImpulseCalculation(options: CalculationOptions): {
     }
   }
   
-  // PROTECTION: Limit maximum number of points to prevent browser overload
+  // SMART PROTECTION: Auto-adjust time step if it would create too many points
   const MAX_POINTS = 1000000;  // 1 million points max
-  const estimatedPoints = Math.floor(duration / actualDt);
+  let estimatedPoints = Math.floor(duration / actualDt);
   
   if (estimatedPoints > MAX_POINTS) {
-    const suggestedDt = duration / MAX_POINTS;
-    throw new Error(
-      `Time step too small! Would create ${estimatedPoints.toLocaleString()} points (max: ${MAX_POINTS.toLocaleString()}). ` +
-      `Try dt ≥ ${suggestedDt.toExponential(1)} seconds or use "auto".`
+    // Instead of throwing error, intelligently adjust time step
+    const minDt = duration / MAX_POINTS;
+    actualDt = Math.max(actualDt, minDt);
+    estimatedPoints = Math.floor(duration / actualDt);
+    
+    console.warn(
+      `Time step auto-adjusted from ${(typeof dt === 'number' ? dt : actualDt).toExponential(2)} to ${actualDt.toExponential(2)} seconds ` +
+      `to keep points under ${MAX_POINTS.toLocaleString()} (estimated: ${estimatedPoints.toLocaleString()})`
     );
   }
   
